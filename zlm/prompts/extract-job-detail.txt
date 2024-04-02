@@ -5,7 +5,7 @@ Your task is consider it to meticulously assess the information and furnish the 
 Provide them only in JSON format - which is easily parse by any json parser - with following keys:
 title, keywords, purpose, duties_responsibilities, required_qualifications, preferred_qualifications, company_name, company_info.
 
-Output:
+Please strictly follow this Output format:
 {
     "title": "RESULT", 
     "keywords": "RESULT", 
@@ -16,3 +16,8 @@ Output:
     company_name: "RESULT",
     company_info: "RESULT",
 }
+
+The results should contain valid JSON only, without any delimiter or characters making invalid JSON format.
+Don't generate "\\" in output
+-----
+job and company description:

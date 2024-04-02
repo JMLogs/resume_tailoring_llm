@@ -30,5 +30,9 @@ Provide JSON object as output like following:
       "name": "Cloud and DevOps",
       "skills": [ "Azure", "AWS", and so on ... ]
     },
+    {
+      "name": "Machine Learning",
+      "skills": [ "NLP", "transformers", and so on ... ]
+    },
     and so on ...
   ],

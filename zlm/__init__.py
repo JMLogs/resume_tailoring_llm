@@ -14,7 +14,7 @@ import streamlit as st
 
 import numpy as np
 
-from zlm.utils.llm_models import ChatGPT, Gemini, TogetherAI
+from zlm.utils.llm_models import ChatGPT, Gemini, TogetherAI, Mixtral8x7B_Instruct, Mixtral8x7B_Instruct_ollama
 from zlm.utils.data_extraction import get_url_content, extract_text
 from zlm.utils.latex_ops import latex_to_pdf
 from zlm.utils.utils import (
@@ -147,6 +147,10 @@ class AutoApplyModel:
             return TogetherAI(api_key=self.api_key, system_prompt=system_prompt)
         elif self.provider == "gemini":
             return Gemini(api_key=self.api_key, system_prompt=system_prompt)
+        elif self.provider == "mixtral":
+            return Mixtral8x7B_Instruct(system_prompt=system_prompt)
+        elif self.provider == "mixtral_ollama":
+            return Mixtral8x7B_Instruct_ollama(system_prompt=system_prompt)
         else:
             raise Exception("Invalid LLM Provider")
 
@@ -297,11 +301,11 @@ class AutoApplyModel:
             # Personal Information Section
             if is_st: st.toast("Processing Resume's Personal Info Section...")
             resume_details["personal"] = { 
-                "name": user_data["name"], 
-                "phone": user_data["phone"], 
-                "email": user_data["email"],
-                "github": user_data["media"]["github"], 
-                "linkedin": user_data["media"]["linkedin"]
+                "name": user_data["name"] if "name" in user_data.keys() else None,
+                "phone": user_data["phone"] if "phone" in user_data.keys() else None, 
+                "email": user_data["email"] if "email" in user_data.keys() else None,
+                "github": user_data["media"]["github"] if "github" in user_data["media"].keys() else None, 
+                "linkedin": user_data["media"]["linkedin"] if "linkedin" in user_data["media"].keys() else None,
                 }
             st.markdown("**Personal Info Section**")
             st.write(resume_details)
