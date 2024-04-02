@@ -18,6 +18,93 @@ import torch
 import ollama
 import transformers
 
+
+class Mistral:
+    def __init__(self, system_prompt, expecting_longer_output=False):
+        
+        model_id= "mistralai/Mistral-7B-Instruct-v0.2" # "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        quantization_config = transformers.BitsAndBytesConfig(
+                                load_in_8bit=True,
+                                bnb_8bit_compute_dtype=torch.bfloat16
+                            )
+        self.model = transformers.AutoModelForCausalLM.from_pretrained(
+            model_id,
+            trust_remote_code=True,
+            device_map='auto',
+            quantization_config=quantization_config,
+        )
+
+        self.system_prompt = system_prompt
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)     
+
+    def get_response(self, prompt_text, expecting_longer_output=False, need_json_output=False):
+
+        self.generate_text = transformers.pipeline(
+            model=self.model, tokenizer=self.tokenizer,
+            return_full_text=False,  # if using langchain set True
+            task="text-generation",
+            do_sample=False,
+            max_new_tokens=4000,  # max number of tokens to generate in the output
+            repetition_penalty=1.15,  # if output begins repeating increase
+        ) 
+        # <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
+
+        # def tokenize(text):
+        #     return tok.encode(text, add_special_tokens=False)        
+        # [BOS_ID] + 
+        # tokenize("[INST]") + tokenize(USER_MESSAGE_1) + tokenize("[/INST]") +
+        # tokenize(BOT_MESSAGE_1) + [EOS_ID] +
+        # …
+        # tokenize("[INST]") + tokenize(USER_MESSAGE_N) + tokenize("[/INST]") +
+        # tokenize(BOT_MESSAGE_N) + [EOS_ID]        
+
+        # Special format required by the Mixtral 8x7B Instruct Chat Model 
+        # where we can use system messages to provide more context about the task
+        prompt = f'<s> [INST] {self.system_prompt} {prompt_text} [/INST]'
+
+        response = self.generate_text(prompt)[0]["generated_text"]
+
+        del self.generate_text
+        del self.model
+        torch.cuda.empty_cache()
+
+        if need_json_output:
+            return parse_json_markdown(response)
+        else:
+            return response
+
+class Mistral_ollama:
+    def __init__(self, system_prompt):
+
+        
+        self.model_id="mixtral8x7b_2bits_temperature0" # "mixtral_hf"
+        self.system_prompt = system_prompt 
+
+    def get_response(self, prompt_text, need_json_output=False):
+        # <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
+
+        # def tokenize(text):
+        #     return tok.encode(text, add_special_tokens=False)        
+        # [BOS_ID] + 
+        # tokenize("[INST]") + tokenize(USER_MESSAGE_1) + tokenize("[/INST]") +
+        # tokenize(BOT_MESSAGE_1) + [EOS_ID] +
+        # …
+        # tokenize("[INST]") + tokenize(USER_MESSAGE_N) + tokenize("[/INST]") +
+        # tokenize(BOT_MESSAGE_N) + [EOS_ID]        
+
+        # Special format required by the Mixtral 8x7B Instruct Chat Model 
+        # where we can use system messages to provide more context about the task
+        prompt = f'<s> [INST] {self.system_prompt} {prompt_text} [/INST]'
+
+        response = ollama.generate(model=self.model_id,prompt=prompt)
+        response = response['response']
+
+        if need_json_output:
+            return parse_json_markdown(response)
+        else:
+            return response
+
+
 class ChatGPT:
     def __init__(self, api_key, system_prompt):
         if system_prompt.strip():
@@ -193,94 +280,6 @@ class Llama2:
 
         return response
 
-class Mixtral8x7B_Instruct:
-    def __init__(self, system_prompt, expecting_longer_output=False):
-        
-        model_id= "mistralai/Mistral-7B-Instruct-v0.2" # "mistralai/Mixtral-8x7B-Instruct-v0.1"
-        quantization_config = transformers.BitsAndBytesConfig(
-                                load_in_8bit=True,
-                                bnb_8bit_compute_dtype=torch.bfloat16
-                            )
-        self.model = transformers.AutoModelForCausalLM.from_pretrained(
-            model_id,
-            trust_remote_code=True,
-            device_map='auto',
-            quantization_config=quantization_config,
-        )
-
-        self.system_prompt = system_prompt
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)     
-
-    def get_response(self, prompt_text, expecting_longer_output=False, need_json_output=False):
-
-        self.generate_text = transformers.pipeline(
-            model=self.model, tokenizer=self.tokenizer,
-            return_full_text=False,  # if using langchain set True
-            task="text-generation",
-            # we pass model parameters here too
-            temperature=0,  # 'randomness' of outputs, 0.0 is the min and 1.0 the max
-            #top_p=0.15,  # select from top tokens whose probability add up to 15%
-            #top_k=0,  # select from top 0 tokens (because zero, relies on top_p)
-            max_new_tokens=4000,  # max number of tokens to generate in the output
-            repetition_penalty=1.15,  # if output begins repeating increase
-            #do_sample=False,  # set to True to prevent the model from just picking the most likely word at every step greedily.
-        ) 
-        # <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
-
-        # def tokenize(text):
-        #     return tok.encode(text, add_special_tokens=False)        
-        # [BOS_ID] + 
-        # tokenize("[INST]") + tokenize(USER_MESSAGE_1) + tokenize("[/INST]") +
-        # tokenize(BOT_MESSAGE_1) + [EOS_ID] +
-        # …
-        # tokenize("[INST]") + tokenize(USER_MESSAGE_N) + tokenize("[/INST]") +
-        # tokenize(BOT_MESSAGE_N) + [EOS_ID]        
-
-        # Special format required by the Mixtral 8x7B Instruct Chat Model 
-        # where we can use system messages to provide more context about the task
-        prompt = f'<s> [INST] {self.system_prompt} {prompt_text} [/INST]'
-
-        response = self.generate_text(prompt)[0]["generated_text"]
-
-        del self.generate_text
-        del self.model
-        torch.cuda.empty_cache()
-
-        if need_json_output:
-            return parse_json_markdown(response)
-        else:
-            return response
-
-class Mixtral8x7B_Instruct_ollama:
-    def __init__(self, system_prompt):
-
-        
-        self.model_id="mixtral8x7b_2bits" # "mixtral_hf"
-        self.system_prompt = system_prompt 
-
-    def get_response(self, prompt_text, need_json_output=False):
-        # <s> [INST] Instruction [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
-
-        # def tokenize(text):
-        #     return tok.encode(text, add_special_tokens=False)        
-        # [BOS_ID] + 
-        # tokenize("[INST]") + tokenize(USER_MESSAGE_1) + tokenize("[/INST]") +
-        # tokenize(BOT_MESSAGE_1) + [EOS_ID] +
-        # …
-        # tokenize("[INST]") + tokenize(USER_MESSAGE_N) + tokenize("[/INST]") +
-        # tokenize(BOT_MESSAGE_N) + [EOS_ID]        
-
-        # Special format required by the Mixtral 8x7B Instruct Chat Model 
-        # where we can use system messages to provide more context about the task
-        prompt = f'<s> [INST] {self.system_prompt} {prompt_text} [/INST]'
-
-        response = ollama.generate(model=self.model_id,prompt=prompt)
-        response = response['response']
-
-        if need_json_output:
-            return parse_json_markdown(response)
-        else:
-            return response
 
 # DO: https://ai.google.dev/tutorials/python_quickstart#use_embeddings
 # def compute_embedding(self, chunks):

@@ -14,7 +14,7 @@ import streamlit as st
 
 import numpy as np
 
-from zlm.utils.llm_models import ChatGPT, Gemini, TogetherAI, Mixtral8x7B_Instruct, Mixtral8x7B_Instruct_ollama
+from zlm.utils.llm_models import ChatGPT, Gemini, TogetherAI, Mixtral8x7B_Instruct, Mistral
 from zlm.utils.data_extraction import get_url_content, extract_text
 from zlm.utils.latex_ops import latex_to_pdf
 from zlm.utils.utils import (
@@ -147,10 +147,10 @@ class AutoApplyModel:
             return TogetherAI(api_key=self.api_key, system_prompt=system_prompt)
         elif self.provider == "gemini":
             return Gemini(api_key=self.api_key, system_prompt=system_prompt)
-        elif self.provider == "mixtral":
-            return Mixtral8x7B_Instruct(system_prompt=system_prompt)
-        elif self.provider == "mixtral_ollama":
-            return Mixtral8x7B_Instruct_ollama(system_prompt=system_prompt)
+        elif self.provider == "mistral":
+            return Mistral(system_prompt=system_prompt)
+        elif self.provider == "mistral_ollama":
+            return Mistral_ollama(system_prompt=system_prompt)
         else:
             raise Exception("Invalid LLM Provider")
 
