@@ -6,6 +6,9 @@ In this fork, my intentions are to:
 - [ ] Enhance the personal tailoring experience with a feedback loop.
 - [ ] Create a simple tool of showing current resume matching score to the provided job description
 
+<hr/>
+
+
 
 
 # ResumeFlow: An LLM-facilitated Pipeline for Personalized Resume Generation and Refinement 
