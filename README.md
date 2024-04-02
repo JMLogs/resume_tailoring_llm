@@ -1,3 +1,13 @@
+# Note
+This repository is a fork from [Ztrimus/job-llm](https://github.com/Ztrimus/job-llm).
+
+In this fork, my intentions are to:
+- [ ] Add support for the local LLM model ([Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)).
+- [ ] Enhance the personal tailoring experience with a feedback loop.
+- [ ] Create a simple tool of showing current resume matching score to the provided job description
+
+
+
 # ResumeFlow: An LLM-facilitated Pipeline for Personalized Resume Generation and Refinement 
 
 [![Demo Page](https://img.shields.io/badge/Project-Demo-FF4B4B?logo=streamlit)](https://job-aligned-resume.streamlit.app/)
