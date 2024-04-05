@@ -53,7 +53,7 @@ def extract_text(pdf_path: str):
             text = page.extract_text().split("\n")
 
             # Remove Unicode characters from each line
-            cleaned_text = [re.sub(r'[^\x00-\x7F]+', '', line) for line in text]
+            cleaned_text = [re.sub(r'[^\x00-\x7F]+', '', line).replace(" ","") for line in text]
 
             # Join the lines into a single string
             cleaned_text_string = '\n'.join(cleaned_text)
