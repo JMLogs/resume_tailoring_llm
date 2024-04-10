@@ -10,6 +10,7 @@ Copyright (c) 2023 Saurabh Zinjad. All rights reserved | GitHub: Ztrimus, ameygo
 import re
 import json
 import PyPDF2
+import pdfplumber
 import requests
 from bs4 import BeautifulSoup
 import streamlit as st
@@ -43,20 +44,25 @@ def get_url_content(url: str):
         return None
 
 def extract_text(pdf_path: str):
-    resume_text = ""
-    with open(pdf_path, 'rb') as file:
-        pdf_reader = PyPDF2.PdfReader(file)
-        num_pages = len(pdf_reader.pages)
-
-        for page_num in range(num_pages):
-            page = pdf_reader.pages[page_num]
-            text = page.extract_text().split("\n")
-
-            # Remove Unicode characters from each line
-            cleaned_text = [re.sub(r'[^\x00-\x7F]+', '', line).replace(" ","") for line in text]
-
-            # Join the lines into a single string
-            cleaned_text_string = '\n'.join(cleaned_text)
-            resume_text += cleaned_text_string
-        
+    resume_text = "" 
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num in range(len(pdf.pages)):
+            resume_text  += pdf.pages[page_num].extract_text()
         return resume_text
+    # resume_text = ""
+    # with open(pdf_path, 'rb') as file:
+    #     pdf_reader = PyPDF2.PdfReader(file)
+    #     num_pages = len(pdf_reader.pages)
+
+    #     for page_num in range(num_pages):
+    #         page = pdf_reader.pages[page_num]
+    #         text = page.extract_text().split("\n")
+
+    #         # Remove Unicode characters from each line
+    #         cleaned_text = [re.sub(r'[^\x00-\x7F]+', '', line) for line in text]
+
+    #         # Join the lines into a single string
+    #         cleaned_text_string = '\n'.join(cleaned_text)
+    #         resume_text += cleaned_text_string
+        
+    #     return resume_text

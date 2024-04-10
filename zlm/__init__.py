@@ -14,7 +14,7 @@ import streamlit as st
 
 import numpy as np
 
-from zlm.utils.llm_models import ChatGPT, Gemini, TogetherAI, Mixtral8x7B_Instruct, Mistral
+from zlm.utils.llm_models import ChatGPT, Gemini, TogetherAI, Mistral, Mistral_ollama
 from zlm.utils.data_extraction import get_url_content, extract_text
 from zlm.utils.latex_ops import latex_to_pdf
 from zlm.utils.utils import (
@@ -63,10 +63,8 @@ class AutoApplyModel:
     ):
 
         if provider is None or provider.strip() == "":
-            self.provider = "openai"
-        else:
-            self.provider = provider
-
+            provider = "openai"
+            
         if api_key is None or api_key.strip() == "os":
             if provider == "openai":
                 self.api_key = os.environ.get("OPENAI_API_KEY")
@@ -81,6 +79,8 @@ class AutoApplyModel:
             self.downloads_dir = get_default_download_folder()
         else:
             self.downloads_dir = downloads_dir
+
+        self.llm = self.get_llm_instance(provider)
     
     # def load_and_split_documents(self, data, chunk_size=1024, chunk_overlap=100):
     #     try:
@@ -135,22 +135,23 @@ class AutoApplyModel:
         system_prompt = get_prompt(
             os.path.join(prompt_path, "resume-extractor.txt")
         )
-        llm = self.get_llm_instance(system_prompt)
         resume_text = extract_text(pdf_path)
-        resume_json = llm.get_response(resume_text, need_json_output=True)
+        resume_json = self.llm.get_response(
+                                system_prompt=system_prompt, 
+                                prompt_text=resume_text, need_json_output=True)
         return resume_json
     
-    def get_llm_instance(self, system_prompt):
-        if self.provider == "openai":
-            return ChatGPT(api_key=self.api_key, system_prompt=system_prompt)
-        elif self.provider == "together":
-            return TogetherAI(api_key=self.api_key, system_prompt=system_prompt)
-        elif self.provider == "gemini":
-            return Gemini(api_key=self.api_key, system_prompt=system_prompt)
-        elif self.provider == "mistral":
-            return Mistral(system_prompt=system_prompt)
-        elif self.provider == "mistral_ollama":
-            return Mistral_ollama(system_prompt=system_prompt)
+    def get_llm_instance(self, provider):
+        if provider == "openai":
+            return ChatGPT(api_key=self.api_key)
+        elif provider == "together":
+            return TogetherAI(api_key=self.api_key)
+        elif provider == "gemini":
+            return Gemini(api_key=self.api_key)
+        elif provider == "mistral":
+            return Mistral()
+        elif provider == "mistral_ollama":
+            return Mistral_ollama()
         else:
             raise Exception("Invalid LLM Provider")
 
@@ -206,8 +207,9 @@ class AutoApplyModel:
                 if job_site_content is None:
                     raise Exception("Unable to web scrape the job description.")
 
-            llm = self.get_llm_instance(system_prompt)
-            job_details = llm.get_response(job_site_content, need_json_output=True)
+            job_details = self.llm.get_response(
+                                    system_prompt=system_prompt, 
+                                    prompt_text=job_site_content, need_json_output=True)
             if url is not None and url.strip() != "":
                 job_details["url"] = url
             jd_path = job_doc_name(job_details, self.downloads_dir, "jd")
@@ -260,8 +262,9 @@ class AutoApplyModel:
                         ---
                     """
 
-            llm = self.get_llm_instance(system_prompt)
-            cover_letter = llm.get_response(query, expecting_longer_output=True)
+            cover_letter = self.llm.get_response(
+                                    system_prompt=system_prompt, 
+                                    prompt_text=query, expecting_longer_output=True)
             cv_path = job_doc_name(job_details, self.downloads_dir, "cv")
             write_file(cv_path, cover_letter)
             print("Cover Letter generated at: ", cv_path)
@@ -313,12 +316,18 @@ class AutoApplyModel:
             # Other Sections
             for section in ['work_experience', 'education', 'skill_section', 'projects', 'certifications', 'achievements']:
                 section_log = f"Processing Resume's {section.upper()} Section..."
+                print(section_log)
                 if is_st: st.toast(section_log)
                 query = get_prompt(os.path.join(prompt_path, "sections", f"{section}.txt"))
-                query = query.replace("<SECTION_DATA>", json.dumps(user_data[section])).replace("<JOB_DESCRIPTION>", json.dumps(job_details))
+                # if section is not in user_data, then skip it.
+                try:
+                    query = query.replace("<SECTION_DATA>", json.dumps(user_data[section])).replace("<JOB_DESCRIPTION>", json.dumps(job_details))
+                except:
+                    continue
 
-                llm = self.get_llm_instance(system_prompt)
-                response = llm.get_response(query, expecting_longer_output=True, need_json_output=True)
+                response = self.llm.get_response(
+                                    system_prompt=system_prompt, 
+                                    prompt_text=query, expecting_longer_output=True, need_json_output=True)
 
                 if response is not None and isinstance(response, dict):
                     if section in response:
