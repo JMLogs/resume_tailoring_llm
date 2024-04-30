@@ -1,5 +1,7 @@
 # Note
 This repository is a fork from [Ztrimus/job-llm](https://github.com/Ztrimus/job-llm).
+Currently, I'm developing each part separately with the following repository:
+- [pdf resume parsing](https://github.com/gabrielchen65/pdf_resume_parsing)
 
 In this fork, my intentions are to:
 - [ ] Add support for the local LLM model ([Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2)).
